@@ -30,7 +30,6 @@ const Inventroy = () => {
   );
 
   const fetchProducts = async () => {
-    console.log("fetch");
     fetch(`${BASEURL}/products`, {
       method: "GET",
       headers: { "content-type": "application/json" },

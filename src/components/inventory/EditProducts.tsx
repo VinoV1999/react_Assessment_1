@@ -1,7 +1,12 @@
 import React, { useState } from "react";
-import { ProductInterface } from "@/constants/constant";
+import {
+  PrimaryVariant,
+  ProductInterface,
+  SecondaryVariant,
+} from "@/constants/constant";
 import { motion } from "framer-motion";
 import { AngleUpArrow } from "@/icons/icon";
+import EditSubVariants from "./EditSubVariants.tsx";
 
 interface EditProductsPropsInterface {
   setInEditModeFunc: (inEditMode: Boolean) => void;
@@ -60,21 +65,8 @@ const EditProducts = ({
       : productDefaultValue;
 
   const [product, setProduct] = useState<ProductInterface>(EditProduct);
-
-  interface openStateInterface {
-    index: number;
-    isOpen: boolean;
-  }
-
-  const [openState, setOpenState] = useState<openStateInterface[]>(
-    EditProduct?.primary_variants?.length > 0
-      ? Array(EditProduct.primary_variants.length)
-          .fill("")
-          .map((_, index) => ({ index, isOpen: false }))
-      : []
-  );
-
-  const [ispvOpen, setIspvOpen] = useState<Boolean>(false);
+  const [ispvOpen, setIspvOpen] = useState<Boolean>(true);
+  const [render, setRender] = useState<boolean>(true);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -86,7 +78,7 @@ const EditProducts = ({
           if (updProducts) updProducts(prodList);
           setInEditModeFunc(false);
           localStorage.setItem("products", JSON.stringify(prodList));
-          document.getElementById('Reload')?.click();
+          document.getElementById("Reload")?.click();
           return;
         }
       }
@@ -112,29 +104,18 @@ const EditProducts = ({
     }));
   };
 
-  const handlePVInputChange = (
-    event: React.ChangeEvent<HTMLInputElement>,
-    pvIndex: number
-  ) => {
+  const handlePVInputChange = (variant: PrimaryVariant, pvIndex: number) => {
     setProduct((pre) => {
       const prePV = pre.primary_variants;
       const updatedPVItems = prePV.map((item, itemIndex) =>
-        itemIndex === pvIndex
-          ? {
-              ...item,
-              [event.target.name]:
-                event.target.name === "active"
-                  ? event.target.checked
-                  : event.target.value,
-            }
-          : item
+        itemIndex === pvIndex ? variant : item
       );
       return { ...pre, primary_variants: updatedPVItems };
     });
   };
 
   const handleSVInputChange = (
-    event: React.ChangeEvent<HTMLInputElement>,
+    variant: SecondaryVariant,
     pvIndex: number,
     svIndex: number
   ) => {
@@ -146,12 +127,7 @@ const EditProducts = ({
               ...pvitem,
               secondary_variants: pvitem.secondary_variants.map(
                 (svitem, svitemIndex) =>
-                  svitemIndex === svIndex
-                    ? {
-                        ...svitem,
-                        [event.target.name]: event.target.value,
-                      }
-                    : svitem
+                  svitemIndex === svIndex ? variant : svitem
               ),
             }
           : pvitem
@@ -160,22 +136,22 @@ const EditProducts = ({
     });
   };
 
-  const handleSVOpenState = (pvIndex: number) => {
-    setOpenState((pre) => {
-      const newArray = pre.map((item, index) =>
-        index === pvIndex ? { ...item, isOpen: !item.isOpen } : item
-      );
-      return [...newArray];
+  const handlePVNewRow = (pvIndex?: number) => {
+    if (!pvIndex)
+      setProduct((pre) => {
+        const newprod = pre;
+        newprod.primary_variants = [...pre.primary_variants, primaryVariantDefaultValue];
+        return newprod;
+      });
+    else
+    setProduct((pre) => {
+      const newprod = pre;
+      newprod.primary_variants[pvIndex].secondary_variants = [...pre.primary_variants[pvIndex].secondary_variants, secondaryvariantDefaultValues];
+      return newprod;
     });
-  };
+    setRender(pre=>!pre);
 
-  // const handlePVNewRow = () => {
-  //   setProduct((pre) => {
-  //     const newprod = pre;
-  //     newprod.primary_variants.push(primaryVariantDefaultValue);
-  //     return newprod;
-  //   });
-  // };
+  };
 
   const removePVIndex = (pvIndex: number) => {
     setProduct((pre) => {
@@ -205,27 +181,29 @@ const EditProducts = ({
     });
   };
 
-  const removeProduct = (prodId:number | undefined ) => {
+  const removeProduct = (prodId: number | undefined) => {
     if (storedProducts) {
       const prodList: ProductInterface[] = JSON.parse(storedProducts);
-      const newprodList = prodList.filter((proditem: ProductInterface) => proditem.id !== prodId );
+      const newprodList = prodList.filter(
+        (proditem: ProductInterface) => proditem.id !== prodId
+      );
       if (newprodList) {
         if (updProducts) updProducts(newprodList);
         setInEditModeFunc(false);
         localStorage.setItem("products", JSON.stringify(newprodList));
       }
     }
-  }
+  };
 
   return (
     <div
-      className="z-50 min-h-screen min-w-screen w-full h-full opacity-90 bg-gray-50 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2  flex items-center justify-center"
+      className="z-50 min-h-screen min-w-screen w-full h-full opacity-90 bg-gray-50 fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2  flex items-center justify-center"
       onClick={() => setInEditModeFunc(false)}
     >
       {
         <div
           onClick={(e) => e.stopPropagation()}
-          className="w-2/3 h-1/2 overflow-y-auto flex items-center bg-white shadow-md shadow-black rounded-md m-5 opacity-100 backdrop-blur-3xl"
+          className="w-2/3 h-2/3 overflow-y-auto flex items-center bg-white shadow-md shadow-black rounded-md m-5 opacity-100 backdrop-blur-3xl"
         >
           {!isvaluePresent && prodId ? (
             <div className="flex items-center justify-center w-full">
@@ -377,12 +355,12 @@ const EditProducts = ({
                     className={"w-3 h-auto hover:cursor-pointer z-30"}
                   />
                 </motion.div>
-                {/* <button
-                  onClick={handlePVNewRow}
-                  className="rounded-full h-6 w-6 bg-btnbg text-white flex items-center justify-center m-3"
+                {/* <div
+                  onClick={()=>handlePVNewRow}
+                  className="rounded-full h-6 w-6 z-50 bg-btnbg text-white flex items-center justify-center m-3 hover:cursor-pointer"
                 >
                   +
-                </button> */}
+                </div> */}
               </div>
               <motion.div
                 initial={{
@@ -397,187 +375,19 @@ const EditProducts = ({
                   display: ispvOpen ? "flex" : "none",
                   y: 0,
                 }}
-                className="w-full flex flex-col gap-1 rounded-lg items-center justify-center "
+                className="w-full flex flex-col gap-1 rounded-lg items-center justify-center"
               >
                 {product?.primary_variants?.length > 0 &&
                   product?.primary_variants.map((pv, pvindex) => (
-                    <div
-                      key={pv?.name + pvindex}
-                      className="w-[90%] flex flex-wrap border-2 rounded-md border-gray-500 mt-5 py-2 opacity-100 justify-center items-center relative"
-                    >
-                      <div
-                        onClick={() => {
-                          removePVIndex(pvindex);
-                        }}
-                        className="absolute right-0 top-0 h-10 w-10 flex items-center justify-center hover:cursor-pointer hover:text-red-500"
-                      >
-                        x
-                      </div>
-                      <div className="w-[40%] flex items-center justify-center gap-5 text-sm text-textColor font-semibold mx-10 my-2">
-                        <label className="w-1/3">Name </label>
-                        <input
-                          className="w-2/3 h-10 px-2 font-normal bg-gray-50 border-2 border-gray-200 rounded-md focus:outline-none focus:border-gray-400"
-                          value={pv.name}
-                          {...{ name: "name" }}
-                          placeholder="Enter Name"
-                          onChange={(e) => {
-                            handlePVInputChange(e, pvindex);
-                          }}
-                        />
-                      </div>
-                      <div className="w-[40%] flex items-center justify-center gap-5 text-sm text-textColor font-semibold mx-10 my-2">
-                        <label className="w-1/3">Price </label>
-                        <input
-                          className="w-2/3 h-10 px-2 font-normal bg-gray-50 border-2 border-gray-200 rounded-md focus:outline-none focus:border-gray-400"
-                          value={pv.price}
-                          {...{ name: "price" }}
-                          placeholder="Enter Price"
-                          onChange={(e) => {
-                            handlePVInputChange(e, pvindex);
-                          }}
-                        />
-                      </div>
-                      <div className="w-[40%] flex items-center justify-center gap-5 text-sm text-textColor font-semibold mx-10 my-2">
-                        <label className="w-1/3">Discount Percentage </label>
-                        <input
-                          className="w-2/3 h-10 px-2 font-normal bg-gray-50 border-2 border-gray-200 rounded-md focus:outline-none focus:border-gray-400"
-                          value={pv.discountPercentage}
-                          {...{ name: "discountPercentage" }}
-                          placeholder="Enter Discount %"
-                          onChange={(e) => {
-                            handlePVInputChange(e, pvindex);
-                          }}
-                        />
-                      </div>
-                      <div className="w-[40%] flex items-center justify-center gap-5 text-sm text-textColor font-semibold mx-10 my-2">
-                        <label className="w-1/3">Inventory </label>
-                        <input
-                          className="w-2/3 h-10 px-2 font-normal bg-gray-50 border-2 border-gray-200 rounded-md focus:outline-none focus:border-gray-400"
-                          value={pv.inventory}
-                          {...{ name: "inventory" }}
-                          placeholder="Enter Inventory"
-                          onChange={(e) => {
-                            handlePVInputChange(e, pvindex);
-                          }}
-                        />
-                      </div>
-                      <div className="w-[40%] flex items-center justify-center gap-5 text-sm text-textColor font-semibold mx-10 my-2">
-                        <label className="w-1/3">Acitve </label>
-                        <div className="w-2/3 h-10 px-2 flex items-center">
-                          <input
-                            className=""
-                            type="checkbox"
-                            checked={pv.active}
-                            {...{ name: "active" }}
-                            onChange={(e) => {
-                              handlePVInputChange(e, pvindex);
-                            }}
-                          />
-                        </div>
-                      </div>
-                      <div className="w-[40%] flex items-center justify-center gap-5 text-sm text-textColor font-semibold mx-10 my-2"></div>
-                      <div className="w-full flex items-center justify-start gap-2 text-sm text-textColor font-bold py-2 px-5">
-                        <h2> Secondary Varients Details</h2>
-                        <motion.div
-                          onClick={() => {
-                            handleSVOpenState(pvindex);
-                          }}
-                          initial={{ rotate: 180 }}
-                          animate={{
-                            rotate: openState[pvindex]?.isOpen ? 180 : 0,
-                          }}
-                          transition={{ ease: "easeInOut" }}
-                          className="z-30"
-                        >
-                          <AngleUpArrow
-                            className={"w-3 h-auto hover:cursor-pointer z-30"}
-                          />
-                        </motion.div>
-                      </div>
-                      <motion.div
-                        initial={{
-                          height: "0px",
-                          opacity: 0,
-                          display: "none",
-                          y: 20,
-                        }}
-                        animate={{
-                          height: openState[pvindex]?.isOpen ? "auto" : "0px",
-                          opacity: openState[pvindex]?.isOpen ? 1 : 0,
-                          display: openState[pvindex]?.isOpen ? "flex" : "none",
-                          y: 0,
-                        }}
-                        className="w-full flex flex-col gap-1 rounded-lg items-center justify-center"
-                      >
-                        {pv?.secondary_variants?.length > 0 &&
-                          pv?.secondary_variants.map((sv, svindex) => (
-                            <div
-                              key={sv.name + pvindex + svindex}
-                              className="w-[90%] border-2 border-gray-500 mt-5 py-2 rounded-md bg-gray-100 flex flex-wrap opacity-100 justify-center items-center relative"
-                            >
-                              <div
-                                onClick={() => {
-                                  removeSVIndex(pvindex, svindex);
-                                }}
-                                className="absolute right-0 top-0 h-10 w-10 flex items-center justify-center hover:cursor-pointer hover:text-red-500"
-                              >
-                                x
-                              </div>
-
-                              <div className="w-[40%] flex items-center justify-center gap-5 text-sm text-textColor font-semibold mx-8 my-2">
-                                <label className="w-1/3">Name </label>
-                                <input
-                                  className="w-2/3 h-10 px-2 font-normal bg-gray-50 border-2 border-gray-200 rounded-md focus:outline-none focus:border-gray-400"
-                                  value={sv.name}
-                                  {...{ name: "name" }}
-                                  placeholder="Enter Name"
-                                  onChange={(e) => {
-                                    handleSVInputChange(e, pvindex, svindex);
-                                  }}
-                                />
-                              </div>
-                              <div className="w-[40%] flex items-center justify-center gap-5 text-sm text-textColor font-semibold mx-8 my-2">
-                                <label className="w-1/3">Price </label>
-                                <input
-                                  className="w-2/3 h-10 px-2 font-normal bg-gray-50 border-2 border-gray-200 rounded-md focus:outline-none focus:border-gray-400"
-                                  value={sv.price}
-                                  {...{ name: "price" }}
-                                  placeholder="Enter Price"
-                                  onChange={(e) => {
-                                    handleSVInputChange(e, pvindex, svindex);
-                                  }}
-                                />
-                              </div>
-                              <div className="w-[40%] flex items-center justify-center gap-5 text-sm text-textColor font-semibold mx-8 my-2">
-                                <label className="w-1/3">
-                                  Discount Percentage
-                                </label>
-                                <input
-                                  className="w-2/3 h-10 px-2 font-normal bg-gray-50 border-2 border-gray-200 rounded-md focus:outline-none focus:border-gray-400"
-                                  value={sv.discountPercentage}
-                                  {...{ name: "discountPercentage" }}
-                                  placeholder="Enter Discount %"
-                                  onChange={(e) => {
-                                    handleSVInputChange(e, pvindex, svindex);
-                                  }}
-                                />
-                              </div>
-                              <div className="w-[40%] flex items-center justify-center gap-5 text-sm text-textColor font-semibold mx-8 my-2">
-                                <label className="w-1/3">Inventory </label>
-                                <input
-                                  className="w-2/3 h-10 px-2 font-normal bg-gray-50 border-2 border-gray-200 rounded-md focus:outline-none focus:border-gray-400"
-                                  value={sv.inventory}
-                                  {...{ name: "inventory" }}
-                                  placeholder="Enter Inventory"
-                                  onChange={(e) => {
-                                    handleSVInputChange(e, pvindex, svindex);
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          ))}
-                      </motion.div>
-                    </div>
+                    <EditSubVariants
+                      handlePVInputChange={handlePVInputChange}
+                      handleSvInputChange={handleSVInputChange}
+                      removePVIndex={removePVIndex}
+                      removeSVIndex={removeSVIndex}
+                      pvIndex={pvindex}
+                      variant={pv}
+                      handlePVNewRow={handlePVNewRow}
+                    />
                   ))}
               </motion.div>
               <div className="w-full flex items-center py-5 justify-end">
